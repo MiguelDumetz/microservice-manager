@@ -1,6 +1,8 @@
-import { useState, Dispatch, SetStateAction } from 'react';
+import { useState } from 'react';
 
-function useSelectable<T extends { id: number }>(setItems: Dispatch<SetStateAction<T[]>>) {
+function useSelectable(
+  onDelete: (ids: number[]) => Promise<void>
+) {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showConfirm, setShowConfirm] = useState(false);
@@ -16,15 +18,15 @@ function useSelectable<T extends { id: number }>(setItems: Dispatch<SetStateActi
   }
 
   function handleToggleSelect(id: number) {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   }
 
-  function handleConfirmDelete() {
-    setItems(prev => prev.filter(item => !selectedIds.has(item.id)));
+  async function handleConfirmDelete() {
+    await onDelete(Array.from(selectedIds));
     setSelectedIds(new Set());
     setIsSelecting(false);
     setShowConfirm(false);

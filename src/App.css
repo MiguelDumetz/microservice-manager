@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:is(.dark, .dark *));
+
+@variant 3xl (@media (width >= 1920px));
+
+.no-transitions * {
+  transition: none !important;
+}

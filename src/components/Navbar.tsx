@@ -1,88 +1,86 @@
 import { useState } from 'react';
+import { Sun, Moon, Activity } from 'lucide-react';
 import { Project } from '../types';
-import { useAuth } from '../context/AuthContext';
-import AuthModal from './Auth/AuthModal';
 
 interface NavbarProps {
   projects: Project[];
+  isDark: boolean;
+  onToggleTheme: () => void;
   onHome: () => void;
   onSelectProject: (project: Project) => void;
 }
 
-function Navbar({ projects, onHome, onSelectProject }: NavbarProps) {
-  const { user, logout } = useAuth();
+function Navbar({ projects, isDark, onToggleTheme, onHome, onSelectProject }: NavbarProps) {
   const [projectsOpen, setProjectsOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
 
   return (
-    <>
-      <nav className="bg-slate-900 border-b border-slate-800 h-14 flex items-center px-8">
-        <div className="flex items-center gap-8 w-full">
-          <span className="text-white font-semibold text-lg">Service Manager</span>
-          <div
-            className="relative h-14 flex items-center"
-            onMouseEnter={() => setProjectsOpen(true)}
-            onMouseLeave={() => setProjectsOpen(false)}
-          >
-            <button
-              onClick={onHome}
-              className="text-sm text-slate-400 hover:text-white transition-colors"
-            >
-              Projects
-            </button>
-            {projectsOpen && (
-              <div className="absolute top-full left-0 bg-slate-800 border border-slate-700 rounded-lg py-1 min-w-44 z-50">
-                {projects.map((project) => (
-                  <button
-                    key={project.id}
-                    onClick={() => onSelectProject(project)}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
-                  >
-                    {project.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+    <nav className="bg-white border-b border-gray-200 dark:bg-slate-900 dark:border-slate-800 h-14 flex items-center px-4 sm:px-8">
+      <div className="flex items-center gap-4 sm:gap-8 w-full">
 
-          <div className="ml-auto">
-            {user ? (
-              <div
-                className="relative h-14 flex items-center"
-                onMouseEnter={() => setProfileOpen(true)}
-                onMouseLeave={() => setProfileOpen(false)}
-              >
-                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-semibold cursor-default select-none">
-                  {user.name[0].toUpperCase()}
-                </div>
-                {profileOpen && (
-                  <div className="absolute top-full right-0 bg-slate-800 border border-slate-700 rounded-lg py-1 min-w-44 z-50">
-                    <p className="px-4 py-2 text-sm text-white font-medium border-b border-slate-700">
-                      {user.name}
-                    </p>
-                    <button
-                      onClick={logout}
-                      className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
-                    >
-                      Log out
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="text-sm text-slate-400 hover:text-white transition-colors"
-              >
-                Log in
-              </button>
-            )}
-          </div>
+        {/* Brand — icon only on mobile, icon + text on sm+ */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Activity className="w-5 h-5 text-green-500" />
+          <span className="hidden sm:inline font-semibold text-lg text-gray-900 dark:text-white">
+            Service Manager
+          </span>
         </div>
-      </nav>
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
-    </>
+
+        {/* Projects dropdown — hidden on mobile */}
+        <div
+          className="relative h-14 hidden sm:flex items-center"
+          onMouseEnter={() => setProjectsOpen(true)}
+          onMouseLeave={() => setProjectsOpen(false)}
+        >
+          <button
+            onClick={onHome}
+            className="text-sm text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+          >
+            Projects
+          </button>
+          {projectsOpen && (
+            <div className="absolute top-full left-0 bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-700 rounded-lg py-1 min-w-44 z-50">
+              {projects.map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => onSelectProject(project)}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white transition-colors"
+                >
+                  {project.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Theme toggle */}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="hidden sm:inline text-xs text-gray-500 dark:text-slate-400">
+            {isDark ? 'Dark' : 'Light'}
+          </span>
+          <button
+            role="switch"
+            aria-checked={isDark}
+            aria-label="Toggle dark mode"
+            onClick={onToggleTheme}
+            className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${
+              isDark ? 'bg-slate-600' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 size-5 bg-white rounded-full shadow transition-transform duration-200 flex items-center justify-center ${
+                isDark ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            >
+              {isDark
+                ? <Moon size={11} className="text-slate-600" />
+                : <Sun size={11} className="text-amber-500" />
+              }
+            </span>
+          </button>
+        </div>
+
+      </div>
+    </nav>
   );
 }
 

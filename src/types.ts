@@ -7,12 +7,7 @@ export interface Service {
   id: number;
   name: string;
   url: string;
+  projectId: number;
 }
 
 export type ServiceStatus = 'running' | 'dead' | 'error';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-}

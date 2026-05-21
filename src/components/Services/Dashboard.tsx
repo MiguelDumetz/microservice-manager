@@ -1,24 +1,65 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Server, BarChart2 } from "lucide-react";
 import MicroserviceCard from "./Card";
 import AddServiceButton from "./AddButton";
 import DeleteConfirmModal from "../DeleteConfirmModal";
 import Button from "../Button";
+import SearchBar from "../SearchBar";
+import StatusFilterTabs from "../StatusFilterTabs";
+import type { StatusFilter } from "../StatusFilterTabs";
+import { ServiceCardSkeleton } from "../Skeleton";
 import useSelectable from "../../Hooks/useSelectable";
-import { Service } from "../../types";
-
-const INITIAL_SERVICES: Service[] = [
-  { id: 1, name: "Auth Service",    url: "http://localhost:3001" },
-  { id: 2, name: "User Service",    url: "http://localhost:3002" },
-  { id: 3, name: "Payment Service", url: "http://localhost:3003" },
-];
+import useProjectStatus from "../../Hooks/useProjectStatus";
+import { Project, ServiceStatus } from "../../types";
+import {
+  fetchServices,
+  createService,
+  updateService,
+  deleteServices,
+} from "../../api/services";
 
 interface ServiceDashboardProps {
-  dashboardName: string;
+  project: Project;
   onBack: () => void;
 }
 
-function ServiceDashboard({ dashboardName, onBack }: ServiceDashboardProps) {
-  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
+function ServiceDashboard({ project, onBack }: ServiceDashboardProps) {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [showGraphs, setShowGraphs] = useState(false);
+
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ["services", project.id],
+    queryFn: () => fetchServices(project.id),
+  });
+
+  const addMutation = useMutation({
+    mutationFn: (data: { name: string; url: string }) =>
+      createService(project.id, data),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["services", project.id] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: { name: string; url: string };
+    }) => updateService(project.id, id, data),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["services", project.id] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (ids: number[]) => deleteServices(project.id, ids),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["services", project.id] }),
+  });
+
   const {
     isSelecting,
     selectedIds,
@@ -28,30 +69,118 @@ function ServiceDashboard({ dashboardName, onBack }: ServiceDashboardProps) {
     handleCancelSelecting,
     handleToggleSelect,
     handleConfirmDelete,
-  } = useSelectable(setServices);
-
-  function handleAdd(service: { name: string; url: string }) {
-    setServices((prev) => [...prev, { id: Date.now(), ...service }]);
-  }
+  } = useSelectable((ids) => deleteMutation.mutateAsync(ids));
 
   const selectedServices = services.filter((s) => selectedIds.has(s.id));
+  const { running, error, dead } = useProjectStatus(project.id);
 
-  return (
-    <div className="p-8">
-      <header className="max-w-4xl mx-auto mb-8 flex items-center justify-between">
-        <div>
-          <button
-            onClick={onBack}
-            className="text-sm text-slate-400 hover:text-white transition-colors mb-2 block"
-          >
-            ← Return to dashboard
-          </button>
-          <h1 className="text-3xl font-bold text-white">{dashboardName}</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            {services.length} services configured
+  const filtered = services.filter((service) => {
+    const nameMatch =
+      service.name.toLowerCase().includes(search.toLowerCase()) ||
+      service.url.toLowerCase().includes(search.toLowerCase());
+    if (!nameMatch) return false;
+    if (statusFilter === "all") return true;
+    const cached = queryClient.getQueryData<{ status: ServiceStatus }>([
+      "status",
+      service.url,
+    ]);
+    return cached?.status === statusFilter;
+  });
+
+  function renderContent() {
+    if (isLoading) {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ServiceCardSkeleton key={i} />
+          ))}
+        </div>
+      );
+    }
+    if (services.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+          <Server className="w-12 h-12 text-gray-300 dark:text-slate-600" />
+          <p className="text-lg font-semibold text-gray-700 dark:text-slate-300">
+            No services configured
+          </p>
+          <p className="text-sm text-gray-400 dark:text-slate-500 max-w-xs">
+            Add your first service to begin health monitoring for {project.name}
+            .
           </p>
         </div>
-        <div className="flex items-center gap-2">
+      );
+    }
+    if (filtered.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+          <p className="text-base font-semibold text-gray-500 dark:text-slate-400">
+            No services match your filter
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
+        {filtered.map((service) => (
+          <MicroserviceCard
+            key={service.id}
+            id={service.id}
+            name={service.name}
+            url={service.url}
+            isSelecting={isSelecting}
+            isSelected={selectedIds.has(service.id)}
+            onToggleSelect={() => handleToggleSelect(service.id)}
+            onEdit={(data) => updateMutation.mutate({ id: service.id, data })}
+            onDelete={() => deleteMutation.mutateAsync([service.id])}
+            showGraph={showGraphs}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 sm:p-8">
+      <header className="max-w-7xl mx-auto mb-4">
+        <button
+          onClick={onBack}
+          className="text-sm text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white transition-colors mb-2 block"
+        >
+          ← Return to dashboard
+        </button>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+          {project.name}
+        </h1>
+      </header>
+      <div className="max-w-7xl mx-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div className="flex items-center gap-4">
+          {running > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 2xl:w-2.5 2xl:h-2.5 rounded-full bg-green-500 shrink-0" />
+              <span className="text-xs lg:text-sm 2xl:text-base text-gray-500 dark:text-slate-400">
+                {running} Running
+              </span>
+            </div>
+          )}
+          {error > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 2xl:w-2.5 2xl:h-2.5 rounded-full bg-red-500 shrink-0" />
+              <span className="text-xs lg:text-sm 2xl:text-base text-gray-500 dark:text-slate-400">
+                {error} Error
+              </span>
+            </div>
+          )}
+          {dead > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 2xl:w-2.5 2xl:h-2.5 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0" />
+              <span className="text-xs lg:text-sm 2xl:text-base text-gray-500 dark:text-slate-400">
+                {dead} Dead
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           {isSelecting ? (
             <>
               <Button variant="secondary" onClick={handleCancelSelecting}>
@@ -70,23 +199,39 @@ function ServiceDashboard({ dashboardName, onBack }: ServiceDashboardProps) {
               <Button variant="secondary" onClick={handleStartSelecting}>
                 Remove services
               </Button>
-              <AddServiceButton onAdd={handleAdd} />
+              <AddServiceButton onAdd={(s) => addMutation.mutate(s)} />
             </>
           )}
         </div>
-      </header>
-      <main className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {services.map((service) => (
-          <MicroserviceCard
-            key={service.id}
-            name={service.name}
-            url={service.url}
-            isSelecting={isSelecting}
-            isSelected={selectedIds.has(service.id)}
-            onToggleSelect={() => handleToggleSelect(service.id)}
+      </div>
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-2 mb-8">
+        <div className="flex-1">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search services..."
           />
-        ))}
-      </main>
+        </div>
+        <StatusFilterTabs active={statusFilter} onChange={setStatusFilter} />
+        <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
+          <button
+          role="switch"
+          aria-checked={showGraphs}
+          aria-label="Toggle latency graphs"
+          onClick={() => setShowGraphs((v) => !v)}
+          className={[
+            "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs lg:text-sm font-medium transition-colors",
+            showGraphs
+              ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm"
+              : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200",
+          ].join(" ")}
+        >
+          <BarChart2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+          <span className="hidden sm:inline">Latency</span>
+        </button>
+        </div>
+      </div>
+      <main className="max-w-7xl mx-auto">{renderContent()}</main>
       {showConfirm && (
         <DeleteConfirmModal
           services={selectedServices}

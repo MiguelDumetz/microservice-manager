@@ -1,14 +1,25 @@
-import { useState } from 'react';
-import Button from '../Button';
+import { useState } from "react";
+import { Trash2 } from "lucide-react";
+import Button from "../Button";
+import IconButton from "../IconButton";
 
-interface MicroserviceFormProps {
+interface ServiceFormProps {
+  initialValues?: { name: string; url: string };
   onSubmit: (service: { name: string; url: string }) => void;
+  onDelete?: () => void;
   onClose: () => void;
 }
 
-function MicroserviceForm({ onSubmit, onClose }: MicroserviceFormProps) {
-  const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
+function ServiceForm({
+  initialValues,
+  onSubmit,
+  onDelete,
+  onClose,
+}: ServiceFormProps) {
+  const [name, setName] = useState(initialValues?.name ?? "");
+  const [url, setUrl] = useState(initialValues?.url ?? "");
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const isEditing = initialValues !== undefined;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -16,40 +27,86 @@ function MicroserviceForm({ onSubmit, onClose }: MicroserviceFormProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-md">
-        <h2 className="text-lg font-semibold text-white mb-4">Add a service</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm text-slate-400">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Auth Service"
-              required
-              className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-slate-400"
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-700 rounded-xl p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {isEditing ? "Edit service" : "Add a service"}
+          </h2>
+          {isEditing && onDelete && !isConfirmingDelete && (
+            <IconButton
+              icon={Trash2}
+              label="Delete service"
+              variant="danger"
+              onClick={() => setIsConfirmingDelete(true)}
             />
+          )}
+        </div>
+
+        {isConfirmingDelete ? (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-gray-600 dark:text-slate-300">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-gray-900 dark:text-white">
+                {initialValues?.name}
+              </span>
+              ? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsConfirmingDelete(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="button" variant="danger" onClick={onDelete}>
+                Delete
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm text-slate-400">URL</label>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="http://localhost:3001"
-              required
-              className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-slate-400"
-            />
-          </div>
-          <div className="flex justify-end gap-2 mt-2">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-            <Button type="submit">Add service</Button>
-          </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600 dark:text-slate-400">
+                Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Auth Service"
+                required
+                autoFocus
+                className="bg-gray-50 border border-gray-300 text-gray-900 placeholder:text-gray-400 dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder:text-slate-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400 dark:focus:border-slate-400"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600 dark:text-slate-400">
+                URL
+              </label>
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="http://localhost:3001"
+                required
+                className="bg-gray-50 border border-gray-300 text-gray-900 placeholder:text-gray-400 dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder:text-slate-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400 dark:focus:border-slate-400"
+              />
+            </div>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button type="button" variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {isEditing ? "Save changes" : "Add service"}
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
 }
 
-export default MicroserviceForm;
+export default ServiceForm;
