@@ -8,6 +8,18 @@ router.get('/', async (_req, res) => {
   res.json(projects);
 });
 
+router.get('/:projectId', async (req, res) => {
+  const projectId = Number(req.params.projectId);
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
+  if (!project) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+  res.json(project);
+});
+
+
 router.post('/', async (req, res) => {
   const { name } = req.body as { name?: string };
   if (!name?.trim()) {

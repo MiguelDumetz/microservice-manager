@@ -11,7 +11,9 @@
     "services": "node mock-services/auth.js & node mock-services/user.js & node mock-services/payment.js",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.server.json",
     "server": "tsx server/index.ts",
-    "start": "concurrently -n api,vite -c cyan,green \"npm run server\" \"npm run dev\""
+    "start": "concurrently -n api,vite -c cyan,green \"npm run server\" \"npm run dev\"",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -22,13 +24,18 @@
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-router-dom": "^7.15.1",
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
@@ -36,9 +43,11 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "jsdom": "^29.1.1",
     "prisma": "^5.22.0",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.7"
   }
 }

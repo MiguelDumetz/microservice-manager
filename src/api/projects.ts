@@ -6,6 +6,15 @@ export async function fetchProjects(): Promise<Project[]> {
   return res.json();
 }
 
+export async function fetchProject(id: number): Promise<Project> {
+  const res = await fetch(`/api/projects/${id}`);
+  if (!res.ok) {
+    throw new Error(`Project not found`);
+  }
+  return res.json();
+}
+
+
 export async function createProject(name: string): Promise<Project> {
   const res = await fetch('/api/projects', {
     method: 'POST',

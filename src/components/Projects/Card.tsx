@@ -29,15 +29,15 @@ function ProjectCard({ id, name, isSelecting = false, isSelected = false, onTogg
       <div
         onClick={isSelecting ? onToggleSelect : onSelect}
         className={[
-          'relative bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-700 rounded-xl p-3 lg:p-5 2xl:p-7 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-all',
+          'relative bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-700 rounded-xl p-5 lg:p-6 2xl:p-8 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-all flex flex-col min-h-36 lg:min-h-44 2xl:min-h-52',
           isSelected ? 'ring-2 ring-red-500/60' : '',
         ].join(' ')}
       >
-        <h2 className="text-sm lg:text-base 2xl:text-lg font-semibold text-gray-900 dark:text-white pr-9 lg:pr-11 2xl:pr-14 mb-2 lg:mb-3 2xl:mb-4">
+        <h2 className="text-base lg:text-lg 2xl:text-xl font-semibold text-gray-900 dark:text-white pr-10 lg:pr-12 2xl:pr-14 mb-3 lg:mb-4 2xl:mb-5">
           {name}
         </h2>
         {total > 0 ? (
-          <div className="flex items-center gap-3 lg:gap-4 2xl:gap-5">
+          <div className="flex items-center gap-3 lg:gap-4 2xl:gap-5 mt-auto">
             {running > 0 && (
               <div className="flex items-center gap-1 lg:gap-1.5">
                 <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 2xl:w-2.5 2xl:h-2.5 rounded-full bg-green-500 shrink-0" />
@@ -58,9 +58,9 @@ function ProjectCard({ id, name, isSelecting = false, isSelected = false, onTogg
             )}
           </div>
         ) : (
-          <p className="text-xs 2xl:text-sm text-gray-400 dark:text-slate-500">No services configured</p>
+          <p className="text-xs lg:text-sm text-gray-400 dark:text-slate-500 mt-auto">No services configured</p>
         )}
-        <div className="absolute top-1.5 right-1.5 lg:top-2 lg:right-2 2xl:top-3 2xl:right-3">
+        <div className="absolute top-3 right-3 lg:top-4 lg:right-4 2xl:top-5 2xl:right-5">
           {isSelecting ? (
             <IconButton
               icon={Trash2}

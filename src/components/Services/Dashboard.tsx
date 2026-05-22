@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Server, BarChart2 } from "lucide-react";
 import MicroserviceCard from "./Card";
 import AddServiceButton from "./AddButton";
-import DeleteConfirmModal from "../DeleteConfirmModal";
+import DeleteConfirmModal from "../Modals/DeleteConfirmModal";
 import Button from "../Button";
 import SearchBar from "../SearchBar";
 import StatusFilterTabs from "../StatusFilterTabs";
@@ -11,35 +12,43 @@ import type { StatusFilter } from "../StatusFilterTabs";
 import { ServiceCardSkeleton } from "../Skeleton";
 import useSelectable from "../../Hooks/useSelectable";
 import useProjectStatus from "../../Hooks/useProjectStatus";
-import { Project, ServiceStatus } from "../../types";
+
+import { ServiceStatus } from "../../types";
 import {
   fetchServices,
   createService,
   updateService,
   deleteServices,
 } from "../../api/services";
+import { fetchProject } from "../../api/projects";
 
-interface ServiceDashboardProps {
-  project: Project;
-  onBack: () => void;
-}
+function ServiceDashboard() {
+  const { projectId } = useParams();
+  const navigate = useNavigate();
 
-function ServiceDashboard({ project, onBack }: ServiceDashboardProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [showGraphs, setShowGraphs] = useState(false);
+  const [showGraphs, setShowGraphs] = useState<boolean>(true);
+
+  const { data: project } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: () => fetchProject(Number(projectId)),
+  });
 
   const { data: services = [], isLoading } = useQuery({
-    queryKey: ["services", project.id],
-    queryFn: () => fetchServices(project.id),
+    queryKey: ["services", project?.id],
+    queryFn: () => fetchServices(project!.id),
+    enabled: !!project,
   });
 
   const addMutation = useMutation({
     mutationFn: (data: { name: string; url: string }) =>
-      createService(project.id, data),
+      createService(Number(projectId), data),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["services", project.id] }),
+      queryClient.invalidateQueries({
+        queryKey: ["services", Number(projectId)],
+      }),
   });
 
   const updateMutation = useMutation({
@@ -49,15 +58,19 @@ function ServiceDashboard({ project, onBack }: ServiceDashboardProps) {
     }: {
       id: number;
       data: { name: string; url: string };
-    }) => updateService(project.id, id, data),
+    }) => updateService(Number(projectId), id, data),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["services", project.id] }),
+      queryClient.invalidateQueries({
+        queryKey: ["services", Number(projectId)],
+      }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (ids: number[]) => deleteServices(project.id, ids),
+    mutationFn: (ids: number[]) => deleteServices(Number(projectId), ids),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["services", project.id] }),
+      queryClient.invalidateQueries({
+        queryKey: ["services", Number(projectId)],
+      }),
   });
 
   const {
@@ -72,7 +85,7 @@ function ServiceDashboard({ project, onBack }: ServiceDashboardProps) {
   } = useSelectable((ids) => deleteMutation.mutateAsync(ids));
 
   const selectedServices = services.filter((s) => selectedIds.has(s.id));
-  const { running, error, dead } = useProjectStatus(project.id);
+  const { running, error, dead } = useProjectStatus(Number(projectId));
 
   const filtered = services.filter((service) => {
     const nameMatch =
@@ -86,6 +99,14 @@ function ServiceDashboard({ project, onBack }: ServiceDashboardProps) {
     ]);
     return cached?.status === statusFilter;
   });
+
+  if (!project) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-500 dark:text-slate-400">Loading project…</p>
+      </div>
+    );
+  }
 
   function renderContent() {
     if (isLoading) {
@@ -105,8 +126,8 @@ function ServiceDashboard({ project, onBack }: ServiceDashboardProps) {
             No services configured
           </p>
           <p className="text-sm text-gray-400 dark:text-slate-500 max-w-xs">
-            Add your first service to begin health monitoring for {project.name}
-            .
+            Add your first service to begin health monitoring for{" "}
+            {project!.name}.
           </p>
         </div>
       );
@@ -144,7 +165,7 @@ function ServiceDashboard({ project, onBack }: ServiceDashboardProps) {
     <div className="p-4 sm:p-8">
       <header className="max-w-7xl mx-auto mb-4">
         <button
-          onClick={onBack}
+          onClick={() => navigate("/")}
           className="text-sm text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white transition-colors mb-2 block"
         >
           ← Return to dashboard
@@ -215,20 +236,20 @@ function ServiceDashboard({ project, onBack }: ServiceDashboardProps) {
         <StatusFilterTabs active={statusFilter} onChange={setStatusFilter} />
         <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
           <button
-          role="switch"
-          aria-checked={showGraphs}
-          aria-label="Toggle latency graphs"
-          onClick={() => setShowGraphs((v) => !v)}
-          className={[
-            "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs lg:text-sm font-medium transition-colors",
-            showGraphs
-              ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm"
-              : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200",
-          ].join(" ")}
-        >
-          <BarChart2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-          <span className="hidden sm:inline">Latency</span>
-        </button>
+            role="switch"
+            aria-checked={showGraphs}
+            aria-label="Toggle latency graphs"
+            onClick={() => setShowGraphs((v) => !v)}
+            className={[
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs lg:text-sm font-medium transition-colors",
+              showGraphs
+                ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm"
+                : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200",
+            ].join(" ")}
+          >
+            <BarChart2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+            <span className="hidden sm:inline">Latency</span>
+          </button>
         </div>
       </div>
       <main className="max-w-7xl mx-auto">{renderContent()}</main>

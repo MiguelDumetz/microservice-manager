@@ -6,124 +6,7 @@ A local developer tool for monitoring the health of multiple microservices runni
 
 The app is **local-first** — no accounts, no cloud, no deployment. A dev clones the repo, runs it, and their data stays on their machine.
 
----
-
-## Architecture Overview
-
-### Navigation Model
-The app uses **state-based navigation** (no router). `App.tsx` holds a `selectedProject` state. When null, the project dashboard renders. When set, the service dashboard for that project renders.
-
-```
-App
- ├── selectedProject === null → ProjectDashboard
- └── selectedProject !== null → ServiceDashboard
-```
-
-### Data Model
-```
-Project
-  id: number
-  name: string
-
-Service
-  id: number
-  name: string
-  url: string      ← the URL the app polls for health status
-```
-
-Projects and services currently live in React state (not persisted). The next major feature is adding a local SQLite + Express backend to persist them.
-
-### Service Health Polling
-Each `Services/Card.tsx` uses React Query's `useQuery` with `refetchInterval: 5000` to poll its URL every 5 seconds. Status is derived from the fetch result — it is never stored:
-
-- `running` — fetch resolved with `res.ok === true`
-- `error` — fetch resolved with a non-2xx status (error code is captured and displayed, e.g. "ERROR 500")
-- `dead` — fetch threw (connection refused, timeout after 3s)
-
-### Component Structure
-```
-src/
-├── App.tsx                          ← navigation state, projects state
-├── types.ts                         ← Project, Service, ServiceStatus
-├── main.tsx                         ← QueryClientProvider wraps App
-├── Hooks/
-│   └── useSelectable.ts             ← shared selection/delete logic
-└── components/
-    ├── Button.tsx                   ← primary / secondary / danger variants
-    ├── Navbar.tsx                   ← projects dropdown
-    ├── DeleteConfirmModal.tsx       ← shared confirmation dialog
-    ├── Projects/
-    │   ├── Dashboard.tsx            ← project list page
-    │   ├── Card.tsx                 ← single project card (name only)
-    │   ├── AddButton.tsx            ← opens AddForm
-    │   └── AddForm.tsx              ← name-only form
-    └── Services/
-        ├── Dashboard.tsx            ← service list for a project
-        ├── Card.tsx                 ← service card with live health status
-        ├── AddButton.tsx            ← opens AddForm
-        └── AddForm.tsx              ← name + URL form
-```
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Framework | React 19 + TypeScript |
-| Build tool | Vite 8 |
-| Styling | Tailwind CSS v4 (no config file needed, uses `@tailwindcss/vite` plugin) |
-| Data fetching | TanStack React Query v5 |
-| Language | TypeScript — strict mode, `npm run typecheck` to verify |
-
----
-
-## Key Patterns
-
-### `useSelectable` hook
-Both `ProjectDashboard` and `ServiceDashboard` share identical selection/delete state logic. This is extracted into `src/Hooks/useSelectable.ts`. It takes `setItems` as a parameter and manages `isSelecting`, `selectedIds`, `showConfirm`, and all handlers. Neither dashboard owns this logic directly.
-
-### Button component
-`src/components/Button.tsx` is the single source of truth for button styling. Always use it instead of raw `<button>` elements. Three variants: `primary` (default), `secondary`, `danger`.
-
-### Dynamic Tailwind classes
-Tailwind scans source files statically. Never build class names dynamically from strings (e.g. `border-${color}-500`). Always write complete class names and use lookup objects keyed by value:
-```ts
-const STATUS_STYLES: Record<ServiceStatus, StatusStyle> = {
-  running: { border: 'border-green-500/30', ... },
-  ...
-}
-```
-
-### Projects state lives in App
-The projects array is owned by `App.tsx` (not by `ProjectDashboard`) so it can be shared with `Navbar` for the dropdown. `ProjectDashboard` receives `projects` and `setProjects` as props.
-
----
-
-## What's Implemented
-
-- [x] Project dashboard — add, remove, select projects
-- [x] Service dashboard — add, remove services per project
-- [x] Live health polling per service card (5s interval)
-- [x] HTTP error codes shown on error cards (e.g. "ERROR 500")
-- [x] Navbar with projects dropdown
-- [x] "Return to dashboard" button on service page
-- [x] Selection mode with multi-delete + confirmation modal
-- [x] Shared `useSelectable` hook
-- [x] Full TypeScript with strict mode
-
----
-
-## What's Next
-
-The app currently has no persistence — data resets on page refresh. The agreed next step is:
-
-**Local Express + SQLite backend**
-- `server/` folder added to the repo
-- Prisma ORM with SQLite (zero infrastructure, just a file)
-- REST API: `GET/POST/DELETE /api/projects` and `GET/POST/DELETE /api/projects/:id/services`
-- Frontend swaps hardcoded state for `useQuery` / `useMutation` calls
-- No auth — local tool, single user per device
+For full architecture details (tech stack, backend, component structure, key patterns), see **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
 
 ---
 
@@ -197,7 +80,7 @@ Fast read-only search agent. Use for targeted lookups — finding where a symbol
 ## Commands
 
 ```bash
-npm run dev        # start Vite dev server
+npm run dev        # start Vite dev server + Express backend (concurrently)
 npm run typecheck  # run TypeScript compiler check (no emit)
 npm run lint       # run ESLint
 npm run services   # start all three mock services

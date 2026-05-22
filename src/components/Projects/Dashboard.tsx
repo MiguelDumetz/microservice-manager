@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LayoutGrid } from "lucide-react";
 import ProjectCard from "./Card";
 import AddProjectButton from "./AddButton";
-import DeleteConfirmModal from "../DeleteConfirmModal";
+import DeleteConfirmModal from "../Modals/DeleteConfirmModal";
 import Button from "../Button";
 import SearchBar from "../SearchBar";
 import { ProjectCardSkeleton } from "../Skeleton";
@@ -16,12 +17,9 @@ import {
   deleteProjects,
 } from "../../api/projects";
 
-interface ProjectDashboardProps {
-  dashboardName: string;
-  onSelectProject: (project: Project) => void;
-}
-
-function ProjectDashboard({ dashboardName, onSelectProject }: ProjectDashboardProps) {
+function ProjectDashboard() {
+  const dashboardName = "Project Dashboard";
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
@@ -29,6 +27,10 @@ function ProjectDashboard({ dashboardName, onSelectProject }: ProjectDashboardPr
     queryKey: ["projects"],
     queryFn: fetchProjects,
   });
+
+  function handleSelectProject(project: Project) {
+    navigate(`/projects/${project.id}/services`);
+  }
 
   const addMutation = useMutation({
     mutationFn: (name: string) => createProject(name),
@@ -59,14 +61,16 @@ function ProjectDashboard({ dashboardName, onSelectProject }: ProjectDashboardPr
 
   const selectedProjects = projects.filter((p) => selectedIds.has(p.id));
   const filtered = projects.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    p.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   function renderContent() {
     if (isLoading) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => <ProjectCardSkeleton key={i} />)}
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ProjectCardSkeleton key={i} />
+          ))}
         </div>
       );
     }
@@ -74,7 +78,9 @@ function ProjectDashboard({ dashboardName, onSelectProject }: ProjectDashboardPr
       return (
         <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
           <LayoutGrid className="w-12 h-12 text-gray-300 dark:text-slate-600" />
-          <p className="text-lg font-semibold text-gray-700 dark:text-slate-300">No projects yet</p>
+          <p className="text-lg font-semibold text-gray-700 dark:text-slate-300">
+            No projects yet
+          </p>
           <p className="text-sm text-gray-400 dark:text-slate-500 max-w-xs">
             Create your first project to start monitoring your microservices.
           </p>
@@ -84,7 +90,9 @@ function ProjectDashboard({ dashboardName, onSelectProject }: ProjectDashboardPr
     if (filtered.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
-          <p className="text-base font-semibold text-gray-500 dark:text-slate-400">No projects match "{search}"</p>
+          <p className="text-base font-semibold text-gray-500 dark:text-slate-400">
+            No projects match "{search}"
+          </p>
         </div>
       );
     }
@@ -98,8 +106,10 @@ function ProjectDashboard({ dashboardName, onSelectProject }: ProjectDashboardPr
             isSelecting={isSelecting}
             isSelected={selectedIds.has(project.id)}
             onToggleSelect={() => handleToggleSelect(project.id)}
-            onSelect={() => onSelectProject(project)}
-            onEdit={(data) => updateMutation.mutate({ id: project.id, name: data.name })}
+            onSelect={() => handleSelectProject(project)}
+            onEdit={(data) =>
+              updateMutation.mutate({ id: project.id, name: data.name })
+            }
             onDelete={() => deleteMutation.mutateAsync([project.id])}
           />
         ))}
@@ -118,25 +128,35 @@ function ProjectDashboard({ dashboardName, onSelectProject }: ProjectDashboardPr
         <div className="flex items-center gap-2 self-end sm:self-auto">
           {isSelecting ? (
             <>
-              <Button variant="secondary" onClick={handleCancelSelecting}>Cancel</Button>
-              <Button variant="danger" onClick={() => setShowConfirm(true)} disabled={selectedIds.size === 0}>
+              <Button variant="secondary" onClick={handleCancelSelecting}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => setShowConfirm(true)}
+                disabled={selectedIds.size === 0}
+              >
                 Delete selected ({selectedIds.size})
               </Button>
             </>
           ) : (
             <>
-              <Button variant="secondary" onClick={handleStartSelecting}>Remove projects</Button>
+              <Button variant="secondary" onClick={handleStartSelecting}>
+                Remove projects
+              </Button>
               <AddProjectButton onAdd={(p) => addMutation.mutate(p.name)} />
             </>
           )}
         </div>
       </header>
       <div className="max-w-7xl mx-auto mb-4">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search projects..." />
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search projects..."
+        />
       </div>
-      <main className="max-w-7xl mx-auto">
-        {renderContent()}
-      </main>
+      <main className="max-w-7xl mx-auto">{renderContent()}</main>
       {showConfirm && (
         <DeleteConfirmModal
           services={selectedProjects}
