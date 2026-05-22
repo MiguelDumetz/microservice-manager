@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import LatencyChart from './LatencyChart'
+import LatencyChart from '../../../components/Services/LatencyChart'
 
 describe('LatencyChart', () => {
   it('renders "Unreachable" text when status is dead', () => {

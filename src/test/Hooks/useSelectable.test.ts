@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react'
-import useSelectable from './useSelectable'
+import useSelectable from '../../Hooks/useSelectable'
 
 describe('useSelectable', () => {
   it('starts with default state', () => {

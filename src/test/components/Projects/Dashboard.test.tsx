@@ -1,13 +1,13 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Route, Routes, useLocation } from 'react-router-dom'
-import ProjectDashboard from './Dashboard'
-import { renderWithProviders, createTestQueryClient } from '../../test/renderWithProviders'
-import { fetchProjects } from '../../api/projects'
-import { fetchServices } from '../../api/services'
+import ProjectDashboard from '../../../components/Projects/Dashboard'
+import { renderWithProviders, createTestQueryClient } from '../../renderWithProviders'
+import { fetchProjects } from '../../../api/projects'
+import { fetchServices } from '../../../api/services'
 
-vi.mock('../../api/projects')
-vi.mock('../../api/services')
+vi.mock('../../../api/projects')
+vi.mock('../../../api/services')
 
 function LocationDisplay() {
   const location = useLocation()

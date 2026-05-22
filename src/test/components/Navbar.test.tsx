@@ -1,11 +1,11 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Route, Routes, useLocation } from 'react-router-dom'
-import Navbar from './Navbar'
-import { renderWithProviders } from '../test/renderWithProviders'
-import { fetchProjects } from '../api/projects'
+import Navbar from '../../components/Navbar'
+import { renderWithProviders } from '../renderWithProviders'
+import { fetchProjects } from '../../api/projects'
 
-vi.mock('../api/projects')
+vi.mock('../../api/projects')
 
 function LocationDisplay() {
   const location = useLocation()

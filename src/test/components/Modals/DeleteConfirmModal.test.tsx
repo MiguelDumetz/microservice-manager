@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import DeleteConfirmModal from './DeleteConfirmModal'
+import DeleteConfirmModal from '../../../components/Modals/DeleteConfirmModal'
 
 const items = [
   { id: 1, name: 'auth-service' },

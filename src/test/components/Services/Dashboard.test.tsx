@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { render } from '@testing-library/react'
-import ServiceDashboard from './Dashboard'
-import { createTestQueryClient } from '../../test/renderWithProviders'
-import { fetchProject } from '../../api/projects'
-import { fetchServices } from '../../api/services'
+import ServiceDashboard from '../../../components/Services/Dashboard'
+import { createTestQueryClient } from '../../renderWithProviders'
+import { fetchProject } from '../../../api/projects'
+import { fetchServices } from '../../../api/services'
 
-vi.mock('../../api/projects')
-vi.mock('../../api/services')
+vi.mock('../../../api/projects')
+vi.mock('../../../api/services')
 
 const mockProject = { id: 1, name: 'Prod Cluster' }
 const mockServices = [
