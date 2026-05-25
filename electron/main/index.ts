@@ -28,7 +28,7 @@ function createWindow(): void {
 app.whenReady().then(() => {
   if (process.platform === 'darwin') {
     const rootDir = resolve(__dirname, '../../')
-    app.dock.setIcon(resolve(rootDir, 'electron/assets/icon.png'))
+    app.dock?.setIcon(resolve(rootDir, 'electron/assets/icon.png'))
   }
   createWindow()
   app.on('activate', () => {

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Server, BarChart2 } from "lucide-react";
+import EmptyState from "../EmptyState";
 import MicroserviceCard from "./Card";
 import AddServiceButton from "./AddButton";
 import DeleteConfirmModal from "../Modals/DeleteConfirmModal";
@@ -11,11 +12,10 @@ import StatusFilterTabs from "../StatusFilterTabs";
 import type { StatusFilter } from "../StatusFilterTabs";
 import { ServiceCardSkeleton } from "../Skeleton";
 import useSelectable from "../../hooks/useSelectable";
-import useProjectStatus from "../../hooks/useProjectStatus";
+import useLiveServices from "../../hooks/useLiveServices";
+import ServiceStatusBadges from "../ServiceStatusBadges";
 
-import { ServiceStatus } from "../../types";
 import {
-  fetchServices,
   createService,
   updateService,
   deleteServices,
@@ -34,12 +34,6 @@ function ServiceDashboard() {
   const { data: project } = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => fetchProject(Number(projectId)),
-  });
-
-  const { data: services = [], isLoading } = useQuery({
-    queryKey: ["services", project?.id],
-    queryFn: () => fetchServices(project!.id),
-    enabled: !!project,
   });
 
   const addMutation = useMutation({
@@ -84,79 +78,30 @@ function ServiceDashboard() {
     handleConfirmDelete,
   } = useSelectable((ids) => deleteMutation.mutateAsync(ids));
 
-  const selectedServices = services.filter((s) => selectedIds.has(s.id));
-  const { running, error, dead } = useProjectStatus(Number(projectId));
+  const { liveServices, isLoading } = useLiveServices(Number(projectId));
+  const selectedServices = liveServices.filter((s) => selectedIds.has(s.id));
+  const running = liveServices.filter((s) => s.status === "running").length;
+  const error = liveServices.filter((s) => s.status === "error").length;
+  const dead = liveServices.filter((s) => s.status === "dead").length;
 
-  const filtered = services.filter((service) => {
-    const nameMatch =
-      service.name.toLowerCase().includes(search.toLowerCase()) ||
-      service.url.toLowerCase().includes(search.toLowerCase());
-    if (!nameMatch) return false;
-    if (statusFilter === "all") return true;
-    const cached = queryClient.getQueryData<{ status: ServiceStatus }>([
-      "status",
-      service.url,
-    ]);
-    return cached?.status === statusFilter;
-  });
+  const filtered = useMemo(
+    () =>
+      liveServices.filter((ls) => {
+        const nameMatch =
+          ls.name.toLowerCase().includes(search.toLowerCase()) ||
+          ls.url.toLowerCase().includes(search.toLowerCase());
+        if (!nameMatch) return false;
+        if (statusFilter === "all") return true;
+        return ls.status === statusFilter;
+      }),
+    [liveServices, statusFilter, search],
+  );
+
 
   if (!project) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-gray-500 dark:text-slate-400">Loading project…</p>
-      </div>
-    );
-  }
-
-  function renderContent() {
-    if (isLoading) {
-      return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <ServiceCardSkeleton key={i} />
-          ))}
-        </div>
-      );
-    }
-    if (services.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
-          <Server className="w-12 h-12 text-gray-300 dark:text-slate-600" />
-          <p className="text-lg font-semibold text-gray-700 dark:text-slate-300">
-            No services configured
-          </p>
-          <p className="text-sm text-gray-400 dark:text-slate-500 max-w-xs">
-            Add your first service to begin health monitoring for{" "}
-            {project!.name}.
-          </p>
-        </div>
-      );
-    }
-    if (filtered.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
-          <p className="text-base font-semibold text-gray-500 dark:text-slate-400">
-            No services match your filter
-          </p>
-        </div>
-      );
-    }
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
-        {filtered.map((service) => (
-          <MicroserviceCard
-            key={service.id}
-            id={service.id}
-            name={service.name}
-            url={service.url}
-            isSelecting={isSelecting}
-            isSelected={selectedIds.has(service.id)}
-            onToggleSelect={() => handleToggleSelect(service.id)}
-            onEdit={(data) => updateMutation.mutate({ id: service.id, data })}
-            onDelete={() => deleteMutation.mutateAsync([service.id])}
-            showGraph={showGraphs}
-          />
-        ))}
       </div>
     );
   }
@@ -175,32 +120,7 @@ function ServiceDashboard() {
         </h1>
       </header>
       <div className="max-w-7xl mx-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <div className="flex items-center gap-4">
-          {running > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 2xl:w-2.5 2xl:h-2.5 rounded-full bg-green-500 shrink-0" />
-              <span className="text-xs lg:text-sm 2xl:text-base text-gray-500 dark:text-slate-400">
-                {running} Running
-              </span>
-            </div>
-          )}
-          {error > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 2xl:w-2.5 2xl:h-2.5 rounded-full bg-red-500 shrink-0" />
-              <span className="text-xs lg:text-sm 2xl:text-base text-gray-500 dark:text-slate-400">
-                {error} Error
-              </span>
-            </div>
-          )}
-          {dead > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 2xl:w-2.5 2xl:h-2.5 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0" />
-              <span className="text-xs lg:text-sm 2xl:text-base text-gray-500 dark:text-slate-400">
-                {dead} Dead
-              </span>
-            </div>
-          )}
-        </div>
+        <ServiceStatusBadges running={running} error={error} dead={dead} />
         <div className="flex items-center gap-2 self-end sm:self-auto">
           {isSelecting ? (
             <>
@@ -252,7 +172,44 @@ function ServiceDashboard() {
           </button>
         </div>
       </div>
-      <main className="max-w-7xl mx-auto">{renderContent()}</main>
+      <main className="max-w-7xl mx-auto">
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ServiceCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : liveServices.length === 0 ? (
+          <EmptyState
+            icon={Server}
+            title="No services configured"
+            description={`Add your first service to begin health monitoring for ${project?.name}.`}
+          />
+        ) : filtered.length === 0 ? (
+          <EmptyState title="No services match your filter" />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
+            {filtered.map((service) => (
+              <MicroserviceCard
+                key={service.id}
+                id={service.id}
+                name={service.name}
+                url={service.url}
+                status={service.status}
+                latency={service.latency}
+                errorCode={service.errorCode}
+                history={service.history}
+                isSelecting={isSelecting}
+                isSelected={selectedIds.has(service.id)}
+                onToggleSelect={() => handleToggleSelect(service.id)}
+                onEdit={(data) => updateMutation.mutate({ id: service.id, data })}
+                onDelete={() => deleteMutation.mutateAsync([service.id])}
+                showGraph={showGraphs}
+              />
+            ))}
+          </div>
+        )}
+      </main>
       {showConfirm && (
         <DeleteConfirmModal
           services={selectedServices}

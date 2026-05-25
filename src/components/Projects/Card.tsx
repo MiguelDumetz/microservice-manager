@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import IconButton from "../IconButton";
 import ProjectForm from "./AddForm";
+import ServiceStatusBadges from "../ServiceStatusBadges";
 import useProjectStatus from "../../hooks/useProjectStatus";
 
 interface ProjectCardProps {
@@ -46,31 +47,8 @@ function ProjectCard({
           {name}
         </h2>
         {total > 0 ? (
-          <div className="flex items-center gap-3 lg:gap-4 2xl:gap-5 mt-auto">
-            {running > 0 && (
-              <div className="flex items-center gap-1 lg:gap-1.5">
-                <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 2xl:w-2.5 2xl:h-2.5 rounded-full bg-green-500 shrink-0" />
-                <span className="text-xs 2xl:text-sm text-gray-500 dark:text-slate-400">
-                  {running} Running
-                </span>
-              </div>
-            )}
-            {error > 0 && (
-              <div className="flex items-center gap-1 lg:gap-1.5">
-                <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 2xl:w-2.5 2xl:h-2.5 rounded-full bg-red-500 shrink-0" />
-                <span className="text-xs 2xl:text-sm text-gray-500 dark:text-slate-400">
-                  {error} Error
-                </span>
-              </div>
-            )}
-            {dead > 0 && (
-              <div className="flex items-center gap-1 lg:gap-1.5">
-                <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 2xl:w-2.5 2xl:h-2.5 rounded-full bg-gray-400 dark:bg-slate-500 shrink-0" />
-                <span className="text-xs 2xl:text-sm text-gray-500 dark:text-slate-400">
-                  {dead} Dead
-                </span>
-              </div>
-            )}
+          <div className="mt-auto">
+            <ServiceStatusBadges running={running} error={error} dead={dead} />
           </div>
         ) : (
           <p className="text-xs lg:text-sm text-gray-400 dark:text-slate-500 mt-auto">

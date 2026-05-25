@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LayoutGrid } from "lucide-react";
@@ -8,6 +8,7 @@ import DeleteConfirmModal from "../Modals/DeleteConfirmModal";
 import Button from "../Button";
 import SearchBar from "../SearchBar";
 import { ProjectCardSkeleton } from "../Skeleton";
+import EmptyState from "../EmptyState";
 import useSelectable from "../../hooks/useSelectable";
 import { Project } from "../../types";
 import {
@@ -60,62 +61,14 @@ function ProjectDashboard() {
   } = useSelectable((ids) => deleteMutation.mutateAsync(ids));
 
   const selectedProjects = projects.filter((p) => selectedIds.has(p.id));
-  const filtered = projects.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()),
-  );
 
-  function renderContent() {
-    if (isLoading) {
-      return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <ProjectCardSkeleton key={i} />
-          ))}
-        </div>
-      );
-    }
-    if (projects.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
-          <LayoutGrid className="w-12 h-12 text-gray-300 dark:text-slate-600" />
-          <p className="text-lg font-semibold text-gray-700 dark:text-slate-300">
-            No projects yet
-          </p>
-          <p className="text-sm text-gray-400 dark:text-slate-500 max-w-xs">
-            Create your first project to start monitoring your microservices.
-          </p>
-        </div>
-      );
-    }
-    if (filtered.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
-          <p className="text-base font-semibold text-gray-500 dark:text-slate-400">
-            No projects match "{search}"
-          </p>
-        </div>
-      );
-    }
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
-        {filtered.map((project) => (
-          <ProjectCard
-            key={project.id}
-            id={project.id}
-            name={project.name}
-            isSelecting={isSelecting}
-            isSelected={selectedIds.has(project.id)}
-            onToggleSelect={() => handleToggleSelect(project.id)}
-            onSelect={() => handleSelectProject(project)}
-            onEdit={(data) =>
-              updateMutation.mutate({ id: project.id, name: data.name })
-            }
-            onDelete={() => deleteMutation.mutateAsync([project.id])}
-          />
-        ))}
-      </div>
-    );
-  }
+  const filtered = useMemo(
+    () =>
+      projects.filter((p) =>
+        p.name.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [projects, search],
+  );
 
   return (
     <div className="p-4 sm:p-8">
@@ -156,7 +109,41 @@ function ProjectDashboard() {
           placeholder="Search projects..."
         />
       </div>
-      <main className="max-w-7xl mx-auto">{renderContent()}</main>
+      <main className="max-w-7xl mx-auto">
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ProjectCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : projects.length === 0 ? (
+          <EmptyState
+            icon={LayoutGrid}
+            title="No projects yet"
+            description="Create your first project to start monitoring your microservices."
+          />
+        ) : filtered.length === 0 ? (
+          <EmptyState title={`No projects match "${search}"`} />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
+            {filtered.map((project) => (
+              <ProjectCard
+                key={project.id}
+                id={project.id}
+                name={project.name}
+                isSelecting={isSelecting}
+                isSelected={selectedIds.has(project.id)}
+                onToggleSelect={() => handleToggleSelect(project.id)}
+                onSelect={() => handleSelectProject(project)}
+                onEdit={(data) =>
+                  updateMutation.mutate({ id: project.id, name: data.name })
+                }
+                onDelete={() => deleteMutation.mutateAsync([project.id])}
+              />
+            ))}
+          </div>
+        )}
+      </main>
       {showConfirm && (
         <DeleteConfirmModal
           services={selectedProjects}

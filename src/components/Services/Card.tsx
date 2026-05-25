@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { ServiceStatus } from "../../types";
 import IconButton from "../IconButton";
 import ServiceForm from "./AddForm";
@@ -30,16 +29,14 @@ const STATUS_STYLES: Record<ServiceStatus, StatusStyle> = {
   },
 };
 
-interface QueryResult {
-  status: ServiceStatus;
-  errorCode?: number;
-  latency?: number;
-}
-
 interface MicroserviceCardProps {
   id: number;
   name: string;
   url: string;
+  status: ServiceStatus;
+  latency?: number;
+  errorCode?: number;
+  history: number[];
   isSelecting?: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
@@ -52,6 +49,10 @@ function MicroserviceCard({
   id: _id,
   name,
   url,
+  status,
+  latency,
+  errorCode,
+  history,
   isSelecting = false,
   isSelected = false,
   onToggleSelect,
@@ -60,42 +61,12 @@ function MicroserviceCard({
   showGraph = false,
 }: MicroserviceCardProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const latencyHistoryRef = useRef<number[]>([]);
 
-  useEffect(() => {
-    latencyHistoryRef.current = [];
-  }, [url]);
-
-  const { data = { status: "dead" as ServiceStatus } } = useQuery<QueryResult>({
-    queryKey: ["status", url],
-    queryFn: async (): Promise<QueryResult> => {
-      const t0 = performance.now();
-      try {
-        const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
-        const latency = Math.round(performance.now() - t0);
-        latencyHistoryRef.current = [
-          ...latencyHistoryRef.current.slice(-29),
-          latency,
-        ];
-        if (res.ok) return { status: "running", latency };
-        return { status: "error", errorCode: res.status, latency };
-      } catch {
-        return { status: "dead" };
-      }
-    },
-    refetchInterval: () => (latencyHistoryRef.current.length < 2 ? 1000 : 5000),
-    retry: false,
-  });
-
-  const { status, errorCode, latency } = data;
   const styles = STATUS_STYLES[status];
-  const collecting = status !== "dead" && latencyHistoryRef.current.length < 2;
+  const collecting = status !== "dead" && history.length < 2;
   const showChart =
     showGraph &&
-    (status === "dead" ||
-      status === "error" ||
-      latencyHistoryRef.current.length >= 2 ||
-      collecting);
+    (status === "dead" || status === "error" || history.length >= 2 || collecting);
 
   function handleEdit(data: { name: string; url: string }) {
     onEdit(data);
@@ -142,7 +113,7 @@ function MicroserviceCard({
           <>
             <div className="-mx-3 lg:-mx-5 2xl:-mx-7 border-t border-gray-100 dark:border-slate-700/60" />
             <LatencyChart
-              history={latencyHistoryRef.current}
+              history={history}
               status={status}
               collecting={collecting}
             />

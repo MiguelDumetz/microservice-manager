@@ -11,3 +11,10 @@ export interface Service {
 }
 
 export type ServiceStatus = 'running' | 'dead' | 'error';
+
+export interface LiveService extends Service {
+  status: ServiceStatus;
+  errorCode?: number;
+  latency?: number;
+  history: number[];
+}
