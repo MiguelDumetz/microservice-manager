@@ -1,16 +1,39 @@
-# React + Vite
+# Microservice Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A local desktop app for monitoring the health of multiple microservices running on your machine. Instead of checking each service individually, you get a live dashboard showing which services are running, erroring, or unreachable — all at a glance.
 
-Currently, two official plugins are available:
+Built with Electron, React, and SQLite. No accounts, no cloud, no deployment. Your data stays on your machine.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- Organize services into projects
+- Live health polling every 5 seconds per service
+- P50/P95/P99 latency charts per service
+- Search and filter by status (Running / Error / Dead)
+- Dark mode
+- Persistent storage via SQLite
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Prerequisites
 
-## Expanding the ESLint configuration
+- [Node.js](https://nodejs.org) v18 or later
+- Git
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Setup
+
+```bash
+git clone <repo-url>
+cd microservice-manager
+npm install
+npx prisma migrate deploy
+npm run dev
+```
+
+## Mock services
+
+Three local mock services are included for testing the UI without real services:
+
+```bash
+npm run services   # starts auth(:3001), user(:3002), payment(:3003)
+```
+
+Each responds with HTTP 200. To test error states, change `writeHead(200)` to `writeHead(500)` in the relevant file under `mock-services/`. To test the `dead` state, just don't start that service.
