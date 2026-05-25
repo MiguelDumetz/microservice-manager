@@ -1,5 +1,5 @@
 import AppRouter from "./AppRouter";
-import useTheme from "./Hooks/useTheme";
+import useTheme from "./hooks/useTheme";
 import "./App.css";
 
 function App() {

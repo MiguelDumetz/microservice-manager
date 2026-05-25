@@ -8,7 +8,7 @@ import DeleteConfirmModal from "../Modals/DeleteConfirmModal";
 import Button from "../Button";
 import SearchBar from "../SearchBar";
 import { ProjectCardSkeleton } from "../Skeleton";
-import useSelectable from "../../Hooks/useSelectable";
+import useSelectable from "../../hooks/useSelectable";
 import { Project } from "../../types";
 import {
   fetchProjects,

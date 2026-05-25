@@ -10,8 +10,8 @@ import SearchBar from "../SearchBar";
 import StatusFilterTabs from "../StatusFilterTabs";
 import type { StatusFilter } from "../StatusFilterTabs";
 import { ServiceCardSkeleton } from "../Skeleton";
-import useSelectable from "../../Hooks/useSelectable";
-import useProjectStatus from "../../Hooks/useProjectStatus";
+import useSelectable from "../../hooks/useSelectable";
+import useProjectStatus from "../../hooks/useProjectStatus";
 
 import { ServiceStatus } from "../../types";
 import {
